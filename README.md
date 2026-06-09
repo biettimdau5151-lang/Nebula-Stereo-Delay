@@ -279,7 +279,6 @@ GitHub Actions builds on every push and PR:
 ## Credits
 
 - **AL** — Fixed Direct2D window class conflict causing DAW crash when loading multiple plugin instances. See `src/windows_editor.rs`.
-- Built with [opencode.ai](https://opencode.ai)
 
 ---
 
