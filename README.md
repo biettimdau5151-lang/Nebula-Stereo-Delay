@@ -1,0 +1,298 @@
+<div align="center">
+
+# NEBULA STEREO DELAY
+
+**v1.2.0**
+
+*A stereo delay engine forged in double-precision Rust*
+
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL%20v3-blue.svg)](LICENSE)
+[![Platform: macOS](https://img.shields.io/badge/platform-macOS-lightgrey.svg)](#build)
+[![Platform: Windows](https://img.shields.io/badge/platform-Windows-blue.svg)](#build)
+[![Platform: Linux](https://img.shields.io/badge/platform-Linux-orange.svg)](#build)
+[![Format: CLAP](https://img.shields.io/badge/format-CLAP-purple.svg)](#plugin-formats)
+[![Format: VST3](https://img.shields.io/badge/format-VST3-green.svg)](#plugin-formats)
+
+</div>
+
+---
+
+## What if your delay was as precise as your vision?
+
+Most delay plugins process audio in 32-bit floating point. That's fine — until you stack feedback, filters, and crossfeed into a regenerative loop. Each pass through the feedback network erodes a little more resolution, a little more air, a little more *life* from your sound. The repeats don't decay — they *decompose*.
+
+**Nebula Stereo Delay runs its entire DSP engine in 64-bit double precision.** Every delay line read, every biquad filter, every crossfeed blend, every feedback calculation — all `f64`, from input to output. The only place `f32` exists is the final handoff to your DAW. The result? Repeats that decay *gracefully*, not *digitally*. Tail after tail of crystalline echo that keeps its shape through hundreds of feedback cycles.
+
+This isn't a gimmick. It's engineering.
+
+---
+**Screenshot - macOS and Linux variant that uses EGUI**
+<img width="1007" height="699" alt="image" src="https://github.com/user-attachments/assets/9746a945-cf81-4eec-997c-e641548c92c5" />
+---
+**Screenshot - Windows variant that uses Direct2D**
+<img width="1000" height="698" alt="image" src="https://github.com/user-attachments/assets/00366ac4-3556-49ea-82c8-f40c1aa5032c" />
+---
+
+## What's new in v1.1.0
+- **Global Left and Right Mix Knobs Replaced with dedicated Left and Right channel Dry & Wet level knobs and Dry & Wet pan knobs** - With this new addition you can now tweak the stereo imaging of the delay even better, and dial the balance between Dry and Wet signal of the two channels with greater accuracy.
+- **Tweaked the filter knobs for better aesthetics** - Now even the arc on the LPF knob moves counterclockwise to follow the knob.
+- **Microsoft Windows specific UI tweaks** - The Direct2D UI used on Microsoft Windows has been tweaked to look more coherent and the Note drop down menu going out of bound has been fixed.
+- **Microsoft Windows rendering fixes** - Fixed an issue on the Direct2D variant wherein launching the Stereo Delay and our mono Delay together used to replicate the same screen across the two delays. This issue was caused due to shared class name in the tow plugins. It has been fixed now.
+
+## Highlights
+
+### Double-Precision DSP Engine
+Every sample is processed as `f64` from input to output. Cubic Hermite interpolation on the delay lines, Direct Form I biquad filters, smooth parameter ramps — all in double precision. Denormals are flushed to zero on every output sample. The audio thread never allocates, never blocks, never panics.
+
+### 8 Routing Modes
+One knob to reshape your stereo field:
+
+| Mode | Character |
+|------|-----------|
+| **Customized** | Full manual control — set crossfeed amounts yourself |
+| **Straight** | L stays L, R stays R — pure independent channels |
+| **Crossfeed** | Full symmetric blend — each channel feeds the other |
+| **90/10** | Mostly self-feedback with a hint of cross — subtle widening |
+| **10/90** | Mostly crossfeed — almost ping-pong but not quite |
+| **Ping Pong** | Signal bounces L/R on every repeat — classic stereo bounce |
+| **Pan L/R** | Normal feedback but swapped outputs — instant width |
+| **Rotate L/R** | LFO-modulated rotary speaker simulation with equal-power panning |
+
+### Tempo Sync with Deviation
+Lock your delay to the host tempo at any note value from 1/1 down to 1/64, including all triplet subdivisions. Then dial in up to +/-100 cents of deviation for that slightly-off-grid feel that makes repeats breathe. The `:2` and `x2` buttons give you instant half-time and double-time without touching the main knob.
+
+### Per-Channel Filters
+Each delay line has its own low-cut (high-pass) and high-cut (low-pass) filter in the feedback path. Shave off rumble. Roll off harshness. Shape the character of each repeat as it regenerates. Butterworth 12 dB/oct biquads, coefficient-updated per sample from smoothed cutoffs.
+
+### Feedback Phase Inversion
+Flip the phase of each channel's feedback independently. Inverted feedback creates comb-filter effects, resonant spikes, and metallic textures that normal feedback can't produce. Combine with crossfeed phase inversion for phase-cancellation tricks across the stereo field.
+
+### Lock-Free Real-Time Architecture
+No mutexes on the audio thread. Peak meters use `AtomicU32` with `Relaxed` ordering — a single instruction on x86 and AArch64. Spectrum data uses `try_lock()` — the audio thread *never blocks*, it simply skips a frame if the GUI is reading. MIDI CC values use `AtomicU32` + `AtomicBool` with Release-Acquire semantics for guaranteed visibility without fences.
+
+### A/B Comparison + 50-Level Undo/Redo
+Save two complete parameter snapshots and toggle between them with one click. Every parameter change is tracked in an undo stack 50 levels deep. Go back. Go forward. Experiment fearlessly.
+
+### MIDI Learn
+Click MIDI, click a control, then move a MIDI controller. The next CC maps to that control. Right-click MIDI for global MIDI on/off, mapping cleanup, rollback, and save.
+
+### Hard Bypass
+The FX bypass fully removes the delay engine from the signal path when disabled.
+
+### Freely Scalable GUI
+Built with egui on macOS and Linux and native Direct2D on Windows. The window starts at 860x640 and scales as a single fixed-ratio editor surface, so host resizing does not chop controls. DPI-aware on high-resolution displays.
+
+---
+
+## Plugin Formats
+
+| Platform | CLAP | VST3 |
+|----------|:----:|:----:|
+| macOS (Universal) | Yes | Yes |
+| Windows (x86_64) | No | Yes |
+| Linux (x86_64) | Yes | Yes |
+
+AUv2 is intentionally not shipped. The CLAP-to-AUv2 wrapper path proved unstable in Logic Pro, while the plugin remains stable in CLAP and VST3 hosts. Windows CLAP is intentionally disabled because nih-plug CLAP builds have known Windows compatibility issues. The supported targets are CLAP/VST3 on macOS, CLAP/VST3 on Linux, and VST3-only on Windows.
+
+---
+
+## 10 Factory Presets
+
+| Preset | Vibe |
+|--------|------|
+| **Init** | Clean slate — all defaults |
+| **Simple Slap** | 60/80 ms slapback, zero feedback |
+| **Ambient Wash** | Long regenerative tail with low-cut, crossfeed, and tempo sync |
+| **Ping Pong** | Classic L/R bounce with eighth-note sync |
+| **Rotary** | Rotate L/R routing with subtle detune |
+| **Tight Doubler** | 12/24 ms micro-delay for double-tracking width |
+| **Space Echo** | Tape echo emulation — band-limited, wow/flutter deviation |
+| **Stereo Widener** | Inverted crossfeed phase for out-of-phase widening |
+| **Rhythmic Delay** | Triplet polyrhythms with 90/10 routing |
+| **Vintage Tape** | Dark, lo-fi tape character — heavy filtering, high deviation |
+
+Save, load, import, and export your own presets as JSON. Platform-specific user preset directories keep everything organized.
+
+---
+
+## Signal Flow
+
+```
+Input ──► Input Mode Selection ──► ─────────────────────────────────► Dry/Wet Mix ──► Soft Bypass ──► Output
+                                      │                                  ▲
+                                      ▼                                  │
+                                 Delay Line (cubic interp) ──► Filtered Signal (wet)
+                                      ▲                          │
+                                      │                          ▼
+                                      └──────── Feedback ◄─── Biquad Filters
+                                                ▲
+                                                │
+                                           Routing Matrix
+                                           (crossfeed + phase)
+```
+
+---
+
+## Parameters at a Glance
+
+### Per-Channel (L / R)
+
+| Parameter | Range | Default |
+|-----------|-------|---------|
+| Input Mode | Off / Left / Right / L+R / L-R | Left (L) / Right (R) |
+| Delay Time | 0.005 – 2.0 s | 0.5 s |
+| Note (sync) | 1/1 – 1/64 (incl. triplets and dotted values) | 1/4 |
+| Deviation | -100 – +100 ct | 0 ct |
+| :2 / x2 | On / Off | Off |
+| Low Cut | 20 – 20 000 Hz | 20 Hz |
+| High Cut | 20 – 20 000 Hz | 20 000 Hz |
+| Feedback | 0 – 100 % | 40 % |
+| Feedback Phase | Normal / Inverted | Normal |
+
+### Crossfeed
+
+| Parameter | Range | Default |
+|-----------|-------|---------|
+| L/R → R/L | 0 – 100 % | 0 % |
+| Crossfeed Phase L-R / R-L | Normal / Inverted | Normal |
+
+### Top Ribbon
+
+| Parameter | Range | Default |
+|-----------|-------|---------|
+| Preset | Presets | Last used preset |
+| A/B | A / B | A |
+| Undo | 50 steps | Activates when any parameter is changed |
+| Redo | 50 steps | Activates after Undo is used |
+| MIDI | MIDI On/Off, MIDI Learn, Clean Up, CLear All, Roll Back, Save | On |
+| Tempo Sync | Free / Sync | Free |
+| Stereo Link | Unlinked / Linked, ratio-preserving L/R adjustments | Unlinked |
+| Routing | 8 modes | Straight |
+| Oversampling | Off / 2x / 4x / 6x / 8x | Off |
+| FX toggle | On / Off | On |
+
+### Left Output
+
+| Parameter | Range | Default |
+|-----------|-------|---------|
+| Wet | 0 - 100 % | 100 % |
+| Dry | 0 - 100 % | 0 % |
+| Wet Pan | L100 - R100 | L100 |
+| Dry Pan | L100 - R100 | L100 |
+
+### Right Output
+
+| Parameter | Range | Default |
+|-----------|-------|---------|
+| Wet | 0 - 100 % | 100 % |
+| Dry | 0 - 100 % | 0 % |
+| Wet Pan | R100 - L100 | R100 |
+| Dry Pan | R100 - L100 | R100 |
+
+---
+
+## Build
+
+### Prerequisites
+
+- **Rust** 1.85.0+ (`rustup`)
+- **macOS**: Xcode Command Line Tools only (`xcode-select --install`)
+- **Linux**: `libxcb-shape0-dev`, `libxcb-xfixes0-dev`, `libx11-dev`, `libgl-dev`, `libasound2-dev`
+- **Windows**: Visual Studio Build Tools with C++ workload
+
+### Quick Build
+
+```bash
+# Clone
+git clone https://github.com/<you>/nebula-stereo-delay.git
+cd nebula-stereo-delay
+
+# macOS (Universal: arm64 + x86_64, CLAP + VST3)
+./scripts/build_macos.sh
+
+# Linux (x86_64, CLAP + VST3)
+./scripts/build_linux.sh
+
+# Windows (x86_64, VST3 only)
+.\scripts\build_windows.ps1
+```
+
+Built plugins appear in `build/<platform>/`.
+
+### Manual Build
+
+```bash
+cargo build --release
+```
+
+Use `cargo xtask bundle nebula-stereo-delay --release` to create properly structured plugin bundles.
+
+---
+
+## Testing
+
+Three comprehensive test suites validate the plugin at every level:
+
+```bash
+# Technical: DSP math, filter stability, delay line integrity
+cargo test --test technical_tests
+
+# Perceptual: psychoacoustic thresholds, stereo imaging, temporal accuracy
+cargo test --test perceptual_tests
+
+# Audio Evaluation: FFT harmonic analysis, LUFS loudness, golden-reference comparison
+cargo test --test audio_evaluation_tests
+```
+
+---
+
+## Architecture
+
+```
+src/
+├── lib.rs           — Plugin entry point, process loop, denormal flush
+├── dsp/mod.rs       — f64 DSP engine (delay lines, biquads, routing, LFO)
+├── parameters/mod.rs — All automatable params, A/B snapshots, undo/redo
+├── gui/mod.rs       — DPI-scalable egui editor with dark theme
+├── state/mod.rs     — Lock-free meters, spectrum analyser, FFT
+├── midi/mod.rs      — Lock-free MIDI CC store, learn/rollback state
+└── preset/mod.rs    — Factory presets, user save/load, JSON import/export
+```
+
+---
+
+## CI/CD
+
+GitHub Actions builds on every push and PR:
+
+1. **Lint** — `cargo fmt --check` + `cargo clippy -D warnings` on Ubuntu
+2. **macOS** — Universal binary (arm64 + x86_64), CLAP + VST3
+3. **Windows** — x86_64 VST3 only
+4. **Linux** — x86_64 CLAP + VST3
+5. **Release** — Tag a `v*` release and all artifacts publish automatically
+
+---
+
+## Credits
+
+- **AL** — Fixed Direct2D window class conflict causing DAW crash when loading multiple plugin instances. See `src/windows_editor.rs`.
+- Built with [opencode.ai](https://opencode.ai)
+
+---
+
+## License
+
+Nebula Stereo Delay is open-source software licensed under the **GNU Affero General Public License v3**. See [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+*Nebula Audio — where precision meets atmosphere.*
+
+</div>
+
+---
+
+**Reporting Issues:**
+For reporting any issues create an issue on the Github repository, and while creating the issue do mention your email ID in the issue. The issues of paid customers will be solved on priority basis (Minimum payment of $10). Free customers are expected to workout any issues on their own, no support will be provided to them.
