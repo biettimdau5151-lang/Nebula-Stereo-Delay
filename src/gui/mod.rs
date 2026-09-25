@@ -2241,7 +2241,7 @@ fn draw_dropdown_arrow(painter: &Painter, c: LogicCanvas, rect: Rect, color: Col
             Pos2::new(center.x, center.y + h),
         ],
         color,
-        Stroke::new(0.0, Color32::TRANSPARENT),
+        Stroke::new(0.0_f32, Color32::TRANSPARENT),
     ));
 }
 
@@ -3809,7 +3809,7 @@ fn logic_enum_popup(
         |ui| {
             Frame::NONE
                 .fill(PANEL_BG)
-                .stroke(Stroke::new(1.0, BORDER))
+                .stroke(Stroke::new(1.0_f32, BORDER))
                 .show(ui, |ui| {
                     ui.set_min_width(96.0 * c.s);
                     add_contents(ui);
@@ -4080,16 +4080,16 @@ fn apply_dark_theme(ctx: &Context) {
     style.visuals.extreme_bg_color = BG;
     style.visuals.window_fill = PANEL_BG;
     style.visuals.widgets.inactive.bg_fill = WIDGET_BG;
-    style.visuals.widgets.inactive.fg_stroke = Stroke::new(1.0, TEXT_PRI);
+    style.visuals.widgets.inactive.fg_stroke = Stroke::new(1.0_f32, TEXT_PRI);
     style.visuals.widgets.inactive.weak_bg_fill = WIDGET_BG;
     style.visuals.widgets.hovered.bg_fill = Color32::from_rgb(0x36, 0x36, 0x36);
-    style.visuals.widgets.hovered.fg_stroke = Stroke::new(1.0, TEXT_PRI);
+    style.visuals.widgets.hovered.fg_stroke = Stroke::new(1.0_f32, TEXT_PRI);
     style.visuals.widgets.active.bg_fill = ACCENT_DIM;
-    style.visuals.widgets.active.fg_stroke = Stroke::new(1.5, TEXT_PRI);
+    style.visuals.widgets.active.fg_stroke = Stroke::new(1.5_f32, TEXT_PRI);
     style.visuals.selection.bg_fill = ACCENT_DIM;
-    style.visuals.selection.stroke = Stroke::new(1.0, ACCENT);
-    style.visuals.window_stroke = Stroke::new(1.0, BORDER);
-    style.visuals.widgets.noninteractive.fg_stroke = Stroke::new(1.0, TEXT_SEC);
+    style.visuals.selection.stroke = Stroke::new(1.0_f32, ACCENT);
+    style.visuals.window_stroke = Stroke::new(1.0_f32, BORDER);
+    style.visuals.widgets.noninteractive.fg_stroke = Stroke::new(1.0_f32, TEXT_SEC);
     ctx.set_style(style);
 }
 
@@ -4110,7 +4110,7 @@ enum Channel {
 fn draw_top_bar(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>, s: f32) {
     Frame::NONE
         .fill(PANEL_BG)
-        .stroke(Stroke::new(1.0, BORDER))
+        .stroke(Stroke::new(1.0_f32, BORDER))
         .corner_radius(corner_radius(4.0 * s))
         .show(ui, |ui| {
             ui.set_min_width(ui.available_width());
@@ -4164,7 +4164,7 @@ fn draw_preset_button(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter
     let resp = ui.add(
         Button::new(rich("Preset", 11.0 * s).color(TEXT_PRI))
             .fill(WIDGET_BG)
-            .stroke(Stroke::new(1.0, BORDER))
+            .stroke(Stroke::new(1.0_f32, BORDER))
             .corner_radius(corner_radius(3.0 * s)),
     );
     let popup_id = ui.id().with("preset_menu");
@@ -4181,7 +4181,7 @@ fn draw_preset_button(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter
         |ui| {
             Frame::NONE
                 .fill(PANEL_BG)
-                .stroke(Stroke::new(1.0, BORDER))
+                .stroke(Stroke::new(1.0_f32, BORDER))
                 .show(ui, |ui| {
                     ui.set_min_width(250.0 * s);
 
@@ -4326,7 +4326,7 @@ fn draw_ab_button(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>
                 .strong(),
         )
         .fill(if active { BTN_ON } else { BTN_OFF })
-        .stroke(Stroke::new(1.0, if active { ACCENT } else { BORDER }))
+        .stroke(Stroke::new(1.0_f32, if active { ACCENT } else { BORDER }))
         .corner_radius(corner_radius(3.0 * s)),
     );
 
@@ -4342,7 +4342,7 @@ fn draw_undo_btn(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>,
     let resp = ui.add(
         Button::new(rich("\u{2190}", 14.0 * s).color(TEXT_SEC))
             .fill(WIDGET_BG)
-            .stroke(Stroke::new(1.0, BORDER))
+            .stroke(Stroke::new(1.0_f32, BORDER))
             .corner_radius(corner_radius(3.0 * s)),
     );
     if resp.clicked() {
@@ -4360,7 +4360,7 @@ fn draw_redo_btn(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>,
     let resp = ui.add(
         Button::new(rich("\u{2192}", 14.0 * s).color(TEXT_SEC))
             .fill(WIDGET_BG)
-            .stroke(Stroke::new(1.0, BORDER))
+            .stroke(Stroke::new(1.0_f32, BORDER))
             .corner_radius(corner_radius(3.0 * s)),
     );
     if resp.clicked() {
@@ -4387,7 +4387,7 @@ fn draw_midi_learn_btn(ui: &mut Ui, state: &mut EditorState, s: f32) {
         Button::new(rich(label, 11.0 * s).color(if global_on { TEXT_PRI } else { TEXT_SEC }))
             .fill(if learning { BTN_ON } else { WIDGET_BG })
             .stroke(Stroke::new(
-                1.0,
+                1.0_f32,
                 if learning {
                     ACCENT
                 } else if global_on {
@@ -4473,7 +4473,7 @@ fn draw_bypass_btn(ui: &mut Ui, state: &mut EditorState, _setter: &ParamSetter<'
     let resp = ui.add(
         Button::new(rich(label, 11.0 * s).color(fg).strong())
             .fill(bg)
-            .stroke(Stroke::new(1.0, st))
+            .stroke(Stroke::new(1.0_f32, st))
             .corner_radius(corner_radius(3.0 * s)),
     );
     if resp.clicked() {
@@ -4498,7 +4498,7 @@ fn draw_sync_btn(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>,
     let resp = ui.add(
         Button::new(rich(label, 11.0 * s).color(fg).strong())
             .fill(bg)
-            .stroke(Stroke::new(1.0, st))
+            .stroke(Stroke::new(1.0_f32, st))
             .corner_radius(corner_radius(3.0 * s)),
     );
     if resp.clicked() {
@@ -4525,7 +4525,7 @@ fn draw_link_btn(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>,
     let resp = ui.add(
         Button::new(rich(label, 11.0 * s).color(fg).strong())
             .fill(bg)
-            .stroke(Stroke::new(1.0, st))
+            .stroke(Stroke::new(1.0_f32, st))
             .corner_radius(corner_radius(3.0 * s)),
     );
     if resp.clicked() {
@@ -4555,7 +4555,7 @@ fn draw_channel_panel(
 ) {
     Frame::NONE
         .fill(PANEL_BG)
-        .stroke(Stroke::new(1.0, BORDER))
+        .stroke(Stroke::new(1.0_f32, BORDER))
         .corner_radius(corner_radius(6.0 * s))
         .show(ui, |ui| {
             let params = state.params.clone();
@@ -4704,7 +4704,7 @@ fn draw_input_popup(
     let resp = ui.add(
         Button::new(rich(&label, 10.0 * s).color(TEXT_PRI))
             .fill(WIDGET_BG)
-            .stroke(Stroke::new(1.0, BORDER))
+            .stroke(Stroke::new(1.0_f32, BORDER))
             .corner_radius(corner_radius(3.0 * s)),
     );
 
@@ -4734,7 +4734,7 @@ fn draw_input_popup(
         |ui| {
             Frame::NONE
                 .fill(PANEL_BG)
-                .stroke(Stroke::new(1.0, BORDER))
+                .stroke(Stroke::new(1.0_f32, BORDER))
                 .show(ui, |ui| {
                     for (variant, name) in variants {
                         let sel = enum_name(variant) == current_name;
@@ -4783,7 +4783,7 @@ fn draw_delay_section(
 
     Frame::NONE
         .fill(INSET_BG)
-        .stroke(Stroke::new(1.0, BORDER))
+        .stroke(Stroke::new(1.0_f32, BORDER))
         .corner_radius(corner_radius(4.0 * s))
         .show(ui, |ui| {
             ui.vertical_centered(|ui| {
@@ -5002,7 +5002,7 @@ fn draw_delay_scale_button(
     let resp = ui.add(
         Button::new(rich(label, 12.0 * s).color(TEXT_PRI).strong())
             .fill(WIDGET_BG)
-            .stroke(Stroke::new(1.0, BORDER))
+            .stroke(Stroke::new(1.0_f32, BORDER))
             .corner_radius(corner_radius(3.0 * s))
             .min_size(vec2(32.0 * s, 28.0 * s)),
     );
@@ -5360,7 +5360,7 @@ fn draw_note_value_buttons(
             let resp = ui.add(
                 Button::new(rich(label, 8.0 * s).color(if selected { TEXT_PRI } else { TEXT_SEC }))
                     .fill(if selected { BTN_ON } else { WIDGET_BG })
-                    .stroke(Stroke::new(1.0, if selected { ACCENT } else { BORDER }))
+                    .stroke(Stroke::new(1.0_f32, if selected { ACCENT } else { BORDER }))
                     .corner_radius(corner_radius(2.0 * s))
                     .min_size(vec2(28.0 * s, 18.0 * s)),
             );
@@ -5395,7 +5395,7 @@ fn draw_note_popup(
     let resp = ui.add(
         Button::new(rich(&label, 10.0 * s).color(TEXT_PRI))
             .fill(WIDGET_BG)
-            .stroke(Stroke::new(1.0, BORDER))
+            .stroke(Stroke::new(1.0_f32, BORDER))
             .corner_radius(corner_radius(3.0 * s)),
     );
 
@@ -5417,7 +5417,7 @@ fn draw_note_popup(
         |ui| {
             Frame::NONE
                 .fill(PANEL_BG)
-                .stroke(Stroke::new(1.0, BORDER))
+                .stroke(Stroke::new(1.0_f32, BORDER))
                 .show(ui, |ui| {
                     ui.set_max_width(90.0 * s);
                     for (variant, name) in note_variants() {
@@ -5460,7 +5460,7 @@ fn draw_deviation_field(
         let resp = ui.add(
             Button::new(rich(&text, 10.0 * s).color(TEXT_PRI))
                 .fill(WIDGET_BG)
-                .stroke(Stroke::new(1.0, BORDER))
+                .stroke(Stroke::new(1.0_f32, BORDER))
                 .corner_radius(corner_radius(3.0 * s)),
         );
 
@@ -5509,7 +5509,7 @@ fn draw_center_section(
 ) {
     Frame::NONE
         .fill(INSET_BG)
-        .stroke(Stroke::new(1.0, BORDER))
+        .stroke(Stroke::new(1.0_f32, BORDER))
         .corner_radius(corner_radius(6.0 * s))
         .show(ui, |ui| {
             ui.set_min_width(width);
@@ -5535,7 +5535,7 @@ fn draw_routing_popup(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter
     let resp = ui.add(
         Button::new(rich(current_name, 9.0 * s).color(TEXT_PRI))
             .fill(WIDGET_BG)
-            .stroke(Stroke::new(1.0, BORDER))
+            .stroke(Stroke::new(1.0_f32, BORDER))
             .corner_radius(corner_radius(3.0 * s)),
     );
 
@@ -5555,7 +5555,7 @@ fn draw_routing_popup(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter
         |ui| {
             Frame::NONE
                 .fill(PANEL_BG)
-                .stroke(Stroke::new(1.0, BORDER))
+                .stroke(Stroke::new(1.0_f32, BORDER))
                 .show(ui, |ui| {
                     ui.set_max_width(110.0 * s);
                     for (variant, name) in modes {
@@ -5590,7 +5590,7 @@ fn draw_routing_popup(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter
 fn draw_bottom_bar(ui: &mut Ui, state: &mut EditorState, setter: &ParamSetter<'_>, s: f32) {
     Frame::NONE
         .fill(PANEL_BG)
-        .stroke(Stroke::new(1.0, BORDER))
+        .stroke(Stroke::new(1.0_f32, BORDER))
         .corner_radius(corner_radius(4.0 * s))
         .show(ui, |ui| {
             let params = state.params.clone();
@@ -5777,7 +5777,7 @@ fn draw_knob_field(
         let field_resp = ui.add(
             Button::new(rich(&value_text, size.font_size(s)).color(TEXT_PRI))
                 .fill(WIDGET_BG)
-                .stroke(Stroke::new(1.0, BORDER))
+                .stroke(Stroke::new(1.0_f32, BORDER))
                 .corner_radius(corner_radius(3.0 * s))
                 .min_size(vec2(field_w, 16.0 * s)),
         );
@@ -5913,7 +5913,7 @@ fn draw_phase_btn(
     let resp = ui.add(
         Button::new(rich(&display, 8.0 * s).color(if inverted { TEXT_PRI } else { TEXT_SEC }))
             .fill(if inverted { BTN_ON } else { WIDGET_BG })
-            .stroke(Stroke::new(1.0, if inverted { ACCENT } else { BORDER }))
+            .stroke(Stroke::new(1.0_f32, if inverted { ACCENT } else { BORDER }))
             .corner_radius(corner_radius(3.0 * s))
             .min_size(vec2(48.0 * s, 42.0 * s)),
     );
@@ -5961,7 +5961,7 @@ fn draw_toggle_btn(
                 .strong(),
         )
         .fill(if on { BTN_ON } else { WIDGET_BG })
-        .stroke(Stroke::new(1.0, if on { ACCENT } else { BORDER }))
+        .stroke(Stroke::new(1.0_f32, if on { ACCENT } else { BORDER }))
         .corner_radius(corner_radius(3.0 * s)),
     );
     if resp.clicked() {
