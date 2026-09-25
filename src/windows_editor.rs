@@ -1389,6 +1389,7 @@ impl NativeWindowState {
                     } else {
                         self.params.push_undo();
                         let start_norm = self.float_display_norm(control);
+                        self.begin_float_gesture(control, &setter);
                         let mut drag = DragState {
                             control,
                             start_y: y,
@@ -1468,7 +1469,10 @@ impl NativeWindowState {
             return;
         }
 
-        if self.drag.take().is_some() {
+        if let Some(drag) = self.drag.take() {
+            let context = self.context.clone();
+            let setter = ParamSetter::new(context.as_ref());
+            self.end_float_gesture(drag.control, &setter);
             let _ = unsafe { ReleaseCapture() };
             invalidate(self.hwnd);
         }
@@ -1878,6 +1882,74 @@ impl NativeWindowState {
             self.set_float_display_norm(drag.control, next, setter);
         }
         let _ = x;
+    }
+
+    // Drag gesture is kept ONLY for knob drags: a gesture that spans real time
+    // (begin on mouse down, many perform_edit(), end on mouse up) is honoured by
+    // Cubase 14. Single-shot edits (dropdown, toggle, delay x2/half) must NOT be
+    // bracketed — see the note above `set_float_plain`.
+    fn begin_float_gesture(&self, control: FloatControl, setter: &ParamSetter<'_>) {
+        if self.params.tempo_sync.value()
+            && matches!(control, FloatControl::DelayTimeL | FloatControl::DelayTimeR)
+        {
+            let ch = if control == FloatControl::DelayTimeL {
+                Channel::Left
+            } else {
+                Channel::Right
+            };
+            self.begin_sync_gesture(ch, setter);
+            return;
+        }
+        let param = self.float_param(control);
+        setter.begin_set_parameter(param);
+        if self.stereo_link_active() {
+            if let Some(other) = self.linked_float(control) {
+                setter.begin_set_parameter(self.float_param(other));
+            }
+        }
+    }
+
+    fn end_float_gesture(&self, control: FloatControl, setter: &ParamSetter<'_>) {
+        if self.params.tempo_sync.value()
+            && matches!(control, FloatControl::DelayTimeL | FloatControl::DelayTimeR)
+        {
+            let ch = if control == FloatControl::DelayTimeL {
+                Channel::Left
+            } else {
+                Channel::Right
+            };
+            self.end_sync_gesture(ch, setter);
+            return;
+        }
+        let param = self.float_param(control);
+        setter.end_set_parameter(param);
+        if self.stereo_link_active() {
+            if let Some(other) = self.linked_float(control) {
+                setter.end_set_parameter(self.float_param(other));
+            }
+        }
+    }
+
+    fn begin_sync_gesture(&self, ch: Channel, setter: &ParamSetter<'_>) {
+        let (note, dev) = self.note_dev_params(ch);
+        setter.begin_set_parameter(note);
+        setter.begin_set_parameter(dev);
+        if self.stereo_link_active() {
+            let (note, dev) = self.note_dev_params(ch.other());
+            setter.begin_set_parameter(note);
+            setter.begin_set_parameter(dev);
+        }
+    }
+
+    fn end_sync_gesture(&self, ch: Channel, setter: &ParamSetter<'_>) {
+        let (note, dev) = self.note_dev_params(ch);
+        setter.end_set_parameter(note);
+        setter.end_set_parameter(dev);
+        if self.stereo_link_active() {
+            let (note, dev) = self.note_dev_params(ch.other());
+            setter.end_set_parameter(note);
+            setter.end_set_parameter(dev);
+        }
     }
 
     fn set_float_display_norm(
