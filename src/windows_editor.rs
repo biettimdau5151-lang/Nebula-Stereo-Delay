@@ -2,6 +2,7 @@
 
 use std::any::Any;
 use std::ffi::c_void;
+use std::io::Write;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Once, OnceLock};
 
@@ -304,6 +305,27 @@ impl NativeWindowState {
         }
     }
 
+    // Logs the six dropdown labels whenever any of them changes, so we can see
+    // when a value is written and when (and whether) it gets reverted.
+    fn diag_state(&self) {
+        static LAST: std::sync::Mutex<String> = std::sync::Mutex::new(String::new());
+        let line = format!(
+            "state inL={} inR={} noteL={} noteR={} route={} os={}",
+            self.enum_value_label(EnumControl::InputL),
+            self.enum_value_label(EnumControl::InputR),
+            self.enum_value_label(EnumControl::NoteL),
+            self.enum_value_label(EnumControl::NoteR),
+            self.enum_value_label(EnumControl::Routing),
+            self.enum_value_label(EnumControl::Oversampling),
+        );
+        if let Ok(mut last) = LAST.lock() {
+            if *last != line {
+                *last = line.clone();
+                diag_log(&line);
+            }
+        }
+    }
+
     fn paint(&mut self) {
         self.refresh_dpi();
         let Some((w, h)) = self.logical_client_size() else {
@@ -314,6 +336,7 @@ impl NativeWindowState {
         let setter = ParamSetter::new(context.as_ref());
         self.drain_midi_runtime_to_gui(&setter);
         self.sync_routing_display_to_parameters(&setter);
+        self.diag_state();
 
         let Some(rt) = self.ensure_render_target() else {
             return;
@@ -1350,6 +1373,10 @@ impl NativeWindowState {
         let context = self.context.clone();
         let setter = ParamSetter::new(context.as_ref());
         let layout = self.current_layout();
+        diag_log(&format!(
+            "mouse_down x={x:.1} y={y:.1} popup_open={}",
+            self.popup.is_some()
+        ));
 
         if resize_grip_rect(&layout).contains(x, y) {
             self.resize_drag = Some(ResizeDragState {
@@ -1607,14 +1634,27 @@ impl NativeWindowState {
                 let items = dropdown_items(control);
                 let item_h = 23.0 * layout.s;
                 let popup = dropdown_popup_rect(anchor, items.len(), layout);
+                let ctrl = self.enum_value_label(control);
+                diag_log(&format!(
+                    "dropdown {ctrl} x={x:.1} y={y:.1} rect=({:.1},{:.1},{:.1},{:.1}) items={} item_h={item_h:.1}",
+                    popup.x, popup.y, popup.w, popup.h, items.len()
+                ));
                 if !popup.contains(x, y) {
+                    diag_log(&format!("  {ctrl}: outside rect, closing popup"));
                     self.popup = None;
                     return false;
                 }
                 let idx = ((y - popup.y) / item_h).floor() as usize;
-                if let Some((value, _)) = items.get(idx) {
+                let hit = items.get(idx).copied();
+                diag_log(&format!("  {ctrl}: idx={idx} hit={hit:?}"));
+                if let Some((value, label)) = hit {
+                    let before = self.enum_value_label(control);
                     self.params.push_undo();
-                    self.set_enum_from_index(control, *value, setter);
+                    self.set_enum_from_index(control, value, setter);
+                    let after = self.enum_value_label(control);
+                    diag_log(&format!(
+                        "  {ctrl}: SET #{value} ({label}) before={before} after={after}"
+                    ));
                     self.popup = None;
                     return true;
                 }
@@ -2548,6 +2588,11 @@ impl NativeWindowState {
     fn sync_routing_display_to_parameters(&mut self, setter: &ParamSetter<'_>) {
         let actual = classify_routing_shape(&self.params);
         if self.params.routing.value() != actual {
+            diag_log(&format!(
+                "CLOBBER routing {} -> {}",
+                routing_label(self.params.routing.value()),
+                routing_label(actual)
+            ));
             set_routing_value(setter, &self.params.routing, actual);
         }
     }
@@ -4249,6 +4294,23 @@ fn linked_float_target_norm(
         other.preview_normalized(other_plain * ratio)
     } else {
         (other.modulated_normalized_value() + delta_norm).clamp(0.0, 1.0)
+    }
+}
+
+// Temporary diagnostics: every line is appended to %TEMP%\nebula_diag.log so the
+// dropdown issue can be traced without guessing. Remove once understood.
+fn diag_log(message: &str) {
+    let path = std::env::temp_dir().join("nebula_diag.log");
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+    {
+        let ms = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map(|d| d.as_millis())
+            .unwrap_or(0);
+        let _ = writeln!(file, "[{ms}] {message}");
     }
 }
 
