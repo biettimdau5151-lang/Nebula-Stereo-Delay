@@ -1389,7 +1389,6 @@ impl NativeWindowState {
                     } else {
                         self.params.push_undo();
                         let start_norm = self.float_display_norm(control);
-                        self.begin_float_gesture(control, &setter);
                         let mut drag = DragState {
                             control,
                             start_y: y,
@@ -1469,10 +1468,7 @@ impl NativeWindowState {
             return;
         }
 
-        if let Some(drag) = self.drag.take() {
-            let context = self.context.clone();
-            let setter = ParamSetter::new(context.as_ref());
-            self.end_float_gesture(drag.control, &setter);
+        if self.drag.take().is_some() {
             let _ = unsafe { ReleaseCapture() };
             invalidate(self.hwnd);
         }
@@ -1884,70 +1880,6 @@ impl NativeWindowState {
         let _ = x;
     }
 
-    fn begin_float_gesture(&self, control: FloatControl, setter: &ParamSetter<'_>) {
-        if self.params.tempo_sync.value()
-            && matches!(control, FloatControl::DelayTimeL | FloatControl::DelayTimeR)
-        {
-            let ch = if control == FloatControl::DelayTimeL {
-                Channel::Left
-            } else {
-                Channel::Right
-            };
-            self.begin_sync_gesture(ch, setter);
-            return;
-        }
-        let param = self.float_param(control);
-        setter.begin_set_parameter(param);
-        if self.stereo_link_active() {
-            if let Some(other) = self.linked_float(control) {
-                setter.begin_set_parameter(self.float_param(other));
-            }
-        }
-    }
-
-    fn end_float_gesture(&self, control: FloatControl, setter: &ParamSetter<'_>) {
-        if self.params.tempo_sync.value()
-            && matches!(control, FloatControl::DelayTimeL | FloatControl::DelayTimeR)
-        {
-            let ch = if control == FloatControl::DelayTimeL {
-                Channel::Left
-            } else {
-                Channel::Right
-            };
-            self.end_sync_gesture(ch, setter);
-            return;
-        }
-        let param = self.float_param(control);
-        setter.end_set_parameter(param);
-        if self.stereo_link_active() {
-            if let Some(other) = self.linked_float(control) {
-                setter.end_set_parameter(self.float_param(other));
-            }
-        }
-    }
-
-    fn begin_sync_gesture(&self, ch: Channel, setter: &ParamSetter<'_>) {
-        let (note, dev) = self.note_dev_params(ch);
-        setter.begin_set_parameter(note);
-        setter.begin_set_parameter(dev);
-        if self.stereo_link_active() {
-            let (note, dev) = self.note_dev_params(ch.other());
-            setter.begin_set_parameter(note);
-            setter.begin_set_parameter(dev);
-        }
-    }
-
-    fn end_sync_gesture(&self, ch: Channel, setter: &ParamSetter<'_>) {
-        let (note, dev) = self.note_dev_params(ch);
-        setter.end_set_parameter(note);
-        setter.end_set_parameter(dev);
-        if self.stereo_link_active() {
-            let (note, dev) = self.note_dev_params(ch.other());
-            setter.end_set_parameter(note);
-            setter.end_set_parameter(dev);
-        }
-    }
-
     fn set_float_display_norm(
         &self,
         control: FloatControl,
@@ -2055,9 +1987,7 @@ impl NativeWindowState {
             match param.string_to_normalized_value(&input.text) {
                 Some(norm) => {
                     self.params.push_undo();
-                    self.begin_float_gesture(input.control, setter);
                     self.set_float_display_norm(input.control, norm, setter);
-                    self.end_float_gesture(input.control, setter);
                     self.status = format!("Set {}", param.name());
                 }
                 None => {
@@ -2251,9 +2181,7 @@ impl NativeWindowState {
         macro_rules! set_from_normalized {
             ($param:expr) => {{
                 let value = $param.preview_plain(normalized);
-                setter.begin_set_parameter($param);
                 setter.set_parameter($param, value);
-                setter.end_set_parameter($param);
             }};
         }
         match target {
@@ -4252,16 +4180,19 @@ fn linked_float_target_norm(
     }
 }
 
+// NOTE (Cubase 14 fix): these helpers intentionally do NOT wrap the write in
+// `begin_set_parameter()`/`end_set_parameter()`. Bracketing a `perform_edit()`
+// with `begin_edit()`/`end_edit()` makes Cubase 14 keep ownership of the value
+// for the duration of the gesture and push its own old value back through
+// `process()` on every block, so the edit never sticks (this is what made every
+// knob, dropdown and toggle feel dead while a plain `set_parameter()` — used by
+// the preset loader — worked fine). Studio One does not do this.
 fn set_float_plain(setter: &ParamSetter<'_>, param: &FloatParam, value: f32) {
-    setter.begin_set_parameter(param);
     setter.set_parameter(param, value);
-    setter.end_set_parameter(param);
 }
 
 fn set_bool_value(setter: &ParamSetter<'_>, param: &BoolParam, value: bool) {
-    setter.begin_set_parameter(param);
     setter.set_parameter(param, value);
-    setter.end_set_parameter(param);
 }
 
 fn set_input_value(
@@ -4269,9 +4200,7 @@ fn set_input_value(
     param: &nih_plug::params::enums::EnumParam<InputModeParam>,
     value: InputModeParam,
 ) {
-    setter.begin_set_parameter(param);
     setter.set_parameter(param, value);
-    setter.end_set_parameter(param);
 }
 
 fn set_note_dev(
@@ -4281,12 +4210,8 @@ fn set_note_dev(
     note_value: NoteValueParam,
     dev_value: f32,
 ) {
-    setter.begin_set_parameter(note);
     setter.set_parameter(note, note_value);
-    setter.end_set_parameter(note);
-    setter.begin_set_parameter(dev);
     setter.set_parameter(dev, dev_value.clamp(-100.0, 100.0));
-    setter.end_set_parameter(dev);
 }
 
 fn set_routing_value(
@@ -4294,9 +4219,7 @@ fn set_routing_value(
     param: &nih_plug::params::enums::EnumParam<RoutingModeParam>,
     value: RoutingModeParam,
 ) {
-    setter.begin_set_parameter(param);
     setter.set_parameter(param, value);
-    setter.end_set_parameter(param);
 }
 
 fn set_oversampling_value(
@@ -4304,9 +4227,7 @@ fn set_oversampling_value(
     param: &nih_plug::params::enums::EnumParam<OversamplingParam>,
     value: OversamplingParam,
 ) {
-    setter.begin_set_parameter(param);
     setter.set_parameter(param, value);
-    setter.end_set_parameter(param);
 }
 
 fn set_standard_inputs(setter: &ParamSetter<'_>, params: &NebulaStereoDelayParams) {
